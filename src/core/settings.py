@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     CLIENT_ID: str
     TENANT_ID: str
-    CLIENTE_SECRET: str
+    CLIENT_SECRET: str
     AZURE_BLOB_STORAGE: str
 
     model_config = SettingsConfigDict(
