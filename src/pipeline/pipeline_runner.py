@@ -72,4 +72,4 @@ class PipelineRunner:
                 schema=self.db_schema
             )
 
-            self._cleanup(self.transformer.output_dir)
+        self._cleanup(self.transformer.output_dir)
