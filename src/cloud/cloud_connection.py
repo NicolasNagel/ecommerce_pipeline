@@ -9,8 +9,6 @@ class AzureBlobClient:
     Classe responsável apenas por criar a conexão com o Azure Blob Storage.
     """
     def __init__(self) -> None:
-        self.account_url = settings.AZURE_BLOB_STORAGE
-
         self.credentials = ClientSecretCredential(
             tenant_id=settings.TENANT_ID,
             client_id=settings.CLIENT_ID,
@@ -18,7 +16,7 @@ class AzureBlobClient:
         )
 
         self.blob_service_client = BlobServiceClient(
-            account_url=self.account_url,
+            account_url=settings.AZURE_BLOB_STORAGE,
             credential=self.credentials
         )
 

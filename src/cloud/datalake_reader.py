@@ -4,6 +4,7 @@ from datetime import datetime
 from azure.storage.blob import BlobServiceClient
 
 
+
 class DataLakeReader:
     """
     Classe responsável por ler arquivos do DataLake usando Azure Blob Storage.
