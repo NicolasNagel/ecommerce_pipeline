@@ -15,7 +15,6 @@ class ParquetTransformer(DataTransformer):
         - Salvar Parquet localmente.
         - Retornar o caminho do arquivo gerado.
     """
-
     def __init__(self, output_dir: str | Path = 'src/data/staging') -> None:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
