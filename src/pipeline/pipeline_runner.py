@@ -2,12 +2,12 @@ import shutil
 
 from pathlib import Path
 
-from src.cloud.cloud_connection import AzureBlobClient
-from src.cloud.datalake_writer import DataLakeWriter
-from src.cloud.datalake_reader import DataLakeReader
+from src.cloud.cloud_connection import AzureServiceClient
+from src.cloud.storage import DataLake
 from src.collector.csv_collector import CSVCollector
+from src.core.settings import settings
 from src.database.db_writer import DataBaseWriter
-from src.transformer.parquet_transformer import ParquetTransformer
+from src.transformer.csv_transformer import ParquetTransformer
 
 
 class PipelineRunner:
@@ -29,12 +29,11 @@ class PipelineRunner:
             db_connection_string: str,
             db_schema: str = 'bronze'
     ) -> None:
-        blob_client = AzureBlobClient().get_client()
+        blob_client = AzureServiceClient().get_client()
 
-        self.collector = CSVCollector(path=Path(source_dir))
+        self.collector = CSVCollector(local_file_path=Path(source_dir))
         self.transformer = ParquetTransformer()
-        self.datalake_writer = DataLakeWriter(blob_client, container_name)
-        self.datalake_reader = DataLakeReader(blob_client, container_name)
+        self.datalake = DataLake(blob_client, container_name)
         self.db_writer = DataBaseWriter(db_connection_string)
 
         self.root_folder = root_folder
@@ -51,25 +50,26 @@ class PipelineRunner:
                 shutil.rmtree(path)
 
     def run(self) -> None:
+        """
+        Inicia a Pipeline de Dados.
+        """
         csv_files = self.collector.collect()
 
         for csv_file in csv_files:
-
             parquet_path = self.transformer.transform(csv_file)
 
-            blob_path = self.datalake_writer.upload_file(
+            blob_path = self.datalake.upload_blob(
                 local_file_path=parquet_path,
                 root_folder=self.root_folder
             )
 
-            local_path = self.datalake_reader.download_file(
+            local_path = self.datalake.download_blob(
                 blob_path=blob_path
             )
 
             self.db_writer.write(
-                local_path=local_path,
-                table_name=csv_file.stem,
+                local_file_path=local_path,
                 schema=self.db_schema
             )
 
-        self._cleanup(self.transformer.output_dir)
+        self._cleanup()

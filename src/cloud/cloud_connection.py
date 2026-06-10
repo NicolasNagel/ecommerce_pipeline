@@ -4,24 +4,27 @@ from azure.storage.blob import BlobServiceClient
 from src.core.settings import settings
 
 
-class AzureBlobClient:
+class AzureServiceClient:
     """
-    Classe responsável apenas por criar a conexão com o Azure Blob Storage.
+    Responsável por fazer a conexão com a Azure Blob Storage.
     """
     def __init__(self) -> None:
-        self.credentials = ClientSecretCredential(
-            tenant_id=settings.TENANT_ID,
+        self.credential = ClientSecretCredential(
             client_id=settings.CLIENT_ID,
+            tenant_id=settings.TENANT_ID,
             client_secret=settings.CLIENT_SECRET
         )
 
-        self.blob_service_client = BlobServiceClient(
+        self.azure_service_client = BlobServiceClient(
             account_url=settings.AZURE_BLOB_STORAGE,
-            credential=self.credentials
+            credential=self.credential
         )
 
     def get_client(self) -> BlobServiceClient:
         """
-        Retorna o cliente da Azure Blob Storage.
+        Retorna o client da Azure Storage Blob
+
+        Returns:
+            BlobServiceClient: Client da Azure Storage Blob
         """
-        return self.blob_service_client
+        return self.azure_service_client
