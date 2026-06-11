@@ -1,0 +1,16 @@
+columns:
+  id_cliente:
+    type: string
+    nullable: false
+  nome_cliente:
+    type: string
+    nullable: false
+  estado:
+    type: string
+    nullable: true
+  pais:
+    type: string
+    nullable: true
+  data_cadastro:
+    type: string
+    nullable: false

@@ -5,6 +5,8 @@ from datetime import datetime
 
 from sqlalchemy import create_engine, text
 
+from src.schemas.registry import SchemaRegistry
+
 
 class DataBaseWriter:
     """
@@ -16,8 +18,9 @@ class DataBaseWriter:
         - Escrever dados em tabelas do Banco;
         - Garantir que o schema existe antes de escrever;
     """
-    def __init__(self, connection_string: str) -> None:
+    def __init__(self, connection_string: str, schema_registry: SchemaRegistry) -> None:
         self.engine = create_engine(connection_string)
+        self.schema_registry = SchemaRegistry()
 
     def ensure_schema_exists(self, schema: str) -> None:
         """
@@ -54,6 +57,26 @@ class DataBaseWriter:
             DataFrame: DataFrame do Pandas em memória.
         """
         return pd.read_parquet(local_file_path, engine='pyarrow')
+    
+    def _validate_schema(self, df: pd.DataFrame, dataset_name: str) -> None:
+        """
+        Valida o schema antes de inserir no Banco de Dados.
+
+        Args:
+            df (DataFrame): DataFrame a ser validado.
+            dataset_name (str): Nome do schema definido no contrato.
+        """
+        if not self.schema_registry:
+            return None
+        
+        schema = self.schema_registry.get(dataset_name=dataset_name)
+        if not schema:
+            return None
+        
+        try:
+            schema.validate(df, lazy=True)
+        except Exception as e:
+            raise
     
     def insert_control_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -93,6 +116,8 @@ class DataBaseWriter:
         table_name = self.infer_table_name(local_file_path=local_file_path)
 
         df = self.read_parquet(local_file_path)
+        self._validate_schema(df, dataset_name=local_file_path.stem)
+        
         transformed_df = self.insert_control_columns(df)
 
         transformed_df.to_sql(

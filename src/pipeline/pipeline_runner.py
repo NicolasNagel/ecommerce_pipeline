@@ -5,8 +5,8 @@ from pathlib import Path
 from src.cloud.cloud_connection import AzureServiceClient
 from src.cloud.storage import DataLake
 from src.collector.csv_collector import CSVCollector
-from src.core.settings import settings
 from src.database.db_writer import DataBaseWriter
+from src.schemas.registry import SchemaRegistry
 from src.transformer.csv_transformer import ParquetTransformer
 
 
@@ -30,11 +30,12 @@ class PipelineRunner:
             db_schema: str = 'bronze'
     ) -> None:
         blob_client = AzureServiceClient().get_client()
+        schema_registry = SchemaRegistry()
 
         self.collector = CSVCollector(local_file_path=Path(source_dir))
-        self.transformer = ParquetTransformer()
+        self.transformer = ParquetTransformer(schema_registry=schema_registry)
         self.datalake = DataLake(blob_client, container_name)
-        self.db_writer = DataBaseWriter(db_connection_string)
+        self.db_writer = DataBaseWriter(db_connection_string, schema_registry=schema_registry)
 
         self.root_folder = root_folder
         self.db_schema = db_schema

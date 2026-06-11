@@ -1,0 +1,19 @@
+columns:
+  id_produto:
+    type: string
+    nullable: false
+  nome_produto:
+    type: string
+    nullable: false
+  categoria:
+    type: string
+    nullable: true
+  marca:
+    type: string
+    nullable: true
+  preco_atual:
+    type: float64
+    nullable: false
+  data_criacao:
+    type: string
+    nullable: false

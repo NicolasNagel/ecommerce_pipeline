@@ -1,0 +1,13 @@
+columns:
+  id_produto:
+    type: string
+    nullable: false
+  nome_concorrente:
+    type: string
+    nullable: false
+  preco_concorrente:
+    type: float64
+    nullable: false
+  data_coleta:
+    type: string
+    nullable: false

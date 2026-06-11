@@ -1,0 +1,22 @@
+columns:
+  id_venda:
+    type: string
+    nullable: false
+  data_venda:
+    type: string
+    nullable: false
+  id_cliente:
+    type: string
+    nullable: false
+  id_produto:
+    type: string
+    nullable: false
+  canal_venda:
+    type: string
+    nullable: true
+  quantidade:
+    type: int64
+    nullable: false
+  preco_unitario:
+    type: float64
+    nullable: false
