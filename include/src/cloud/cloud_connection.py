@@ -1,7 +1,7 @@
 from azure.identity import ClientSecretCredential
 from azure.storage.blob import BlobServiceClient
 
-from src.core.settings import settings
+from include.src.core.settings import settings
 
 
 class AzureServiceClient:

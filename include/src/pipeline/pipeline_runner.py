@@ -2,12 +2,12 @@ import shutil
 
 from pathlib import Path
 
-from src.cloud.cloud_connection import AzureServiceClient
-from src.cloud.storage import DataLake
-from src.collector.csv_collector import CSVCollector
-from src.database.db_writer import DataBaseWriter
-from src.schemas.registry import SchemaRegistry
-from src.transformer.csv_transformer import ParquetTransformer
+from include.src.cloud.cloud_connection import AzureServiceClient
+from include.src.cloud.storage import DataLake
+from include.src.collector.csv_collector import CSVCollector
+from include.src.database.db_writer import DataBaseWriter
+from include.src.schemas.registry import SchemaRegistry
+from include.src.transformer.csv_transformer import ParquetTransformer
 
 
 class PipelineRunner:

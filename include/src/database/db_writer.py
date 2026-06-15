@@ -5,7 +5,7 @@ from datetime import datetime
 
 from sqlalchemy import create_engine, text
 
-from src.schemas.registry import SchemaRegistry
+from include.src.schemas.registry import SchemaRegistry
 
 
 class DataBaseWriter:

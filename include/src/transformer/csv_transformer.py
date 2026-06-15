@@ -2,8 +2,8 @@ import pandas as pd
 
 from pathlib import Path
 
-from src.transformer.data_transformer import DataTransformer
-from src.schemas.registry import SchemaRegistry
+from include.src.transformer.data_transformer import DataTransformer
+from include.src.schemas.registry import SchemaRegistry
 
 
 class ParquetTransformer(DataTransformer):

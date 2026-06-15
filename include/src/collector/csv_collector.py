@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.collector.data_collector import DataCollector
+from include.src.collector.data_collector import DataCollector
 
 
 class CSVCollector(DataCollector):

@@ -1,5 +1,5 @@
-from src.core.settings import settings
-from src.pipeline.pipeline_runner import PipelineRunner
+from include.src.core.settings import settings
+from include.src.pipeline.pipeline_runner import PipelineRunner
 
 if __name__ == '__main__':
     pipeline = PipelineRunner(
