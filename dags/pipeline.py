@@ -3,6 +3,7 @@ from pathlib import Path
 
 from airflow.decorators import dag, task
 from airflow.sdk import Variable
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 default_args = {
     'owner': 'nicolas_nagel',
@@ -77,10 +78,18 @@ def bronze_pipeline():
                 schema='bronze'
             )
 
+    trigger_dbt = TriggerDagRunOperator(
+        task_id="trigger_dbt_pipeline",
+        trigger_dag_id="dbt_pipeline",      # ← nome da DAG do Cosmos
+        wait_for_completion=True,           # ← aguarda o dbt terminar
+        poke_interval=30                    # ← verifica a cada 30 segundos
+    )
+
     csv_files = collect()
     parquet_files = transform(csv_files)
     blob_paths = upload(parquet_files)
     local_files = download(blob_paths)
     write_to_db(local_files)
+    trigger_dbt
 
 bronze_pipeline() 

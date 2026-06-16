@@ -1,0 +1,73 @@
+version: 2
+
+models:
+  - name: gold_receita_por_canal
+    description: "Receita agregada por canal e data"
+    columns:
+      - name: cd_canal
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['ecommerce', 'loja_fisica']
+      - name: dt_venda
+        tests:
+          - not_null
+      - name: qt_vendas
+        tests:
+          - not_null
+      - name: vl_receita
+        tests:
+          - not_null
+
+  - name: gold_ranking_produtos
+    description: "Ranking de produtos por receita"
+    columns:
+      - name: id_produto
+        tests:
+          - unique
+          - not_null
+      - name: nm_produto
+        tests:
+          - not_null
+      - name: cd_categoria
+        tests:
+          - not_null
+      - name: vl_receita
+        tests:
+          - not_null
+      - name: nr_rank_receita
+        tests:
+          - unique
+          - not_null
+
+  - name: gold_receita_por_categoria
+    description: "Receita agregada por categoria com participação percentual"
+    columns:
+      - name: cd_categoria
+        tests:
+          - unique
+          - not_null
+      - name: vl_receita
+        tests:
+          - not_null
+      - name: vl_pct_participacao
+        tests:
+          - not_null
+
+  - name: gold_competidores
+    description: "Comparativo de preço próprio vs concorrentes"
+    columns:
+      - name: id_produto
+        tests:
+          - not_null
+      - name: nm_concorrente
+        tests:
+          - not_null
+      - name: flg_mais_caro
+        tests:
+          - not_null
+      - name: st_competitividade
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['acima_mercado', 'abaixo_mercado', 'par_mercado']

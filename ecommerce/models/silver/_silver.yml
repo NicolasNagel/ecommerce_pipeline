@@ -1,0 +1,100 @@
+version: 2
+
+models:
+  - name: silver_clientes
+    description: "Clientes com campos padronizados"
+    columns:
+      - name: id_cliente
+        tests:
+          - unique
+          - not_null
+      - name: nm_cliente
+        tests:
+          - not_null
+      - name: sg_estado
+        tests:
+          - not_null
+      - name: nm_pais
+        tests:
+          - not_null
+      - name: dt_cadastro
+        tests:
+          - not_null
+
+  - name: silver_produtos
+    description: "Produtos com campos padronizados"
+    columns:
+      - name: id_produto
+        tests:
+          - unique
+          - not_null
+      - name: nm_produto
+        tests:
+          - not_null
+      - name: cd_categoria
+        tests:
+          - not_null
+          - accepted_values:
+              values: [
+                'Casa', 'Moda', 'Acessórios', 'Informática',
+                'Cozinha', 'Esporte', 'Games', 'Áudio',
+                'Tênis', 'Eletrônicos', 'Beleza'
+              ]
+      - name: vl_preco_atual
+        tests:
+          - not_null
+
+  - name: silver_vendas
+    description: "Vendas com receita calculada e campos padronizados"
+    columns:
+      - name: id_venda
+        tests:
+          - unique
+          - not_null
+      - name: id_cliente
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_clientes')
+              field: id_cliente
+      - name: id_produto
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_produtos')
+              field: id_produto
+      - name: cd_canal
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['ecommerce', 'loja_fisica']
+      - name: qt_itens
+        tests:
+          - not_null
+      - name: vl_preco_unitario
+        tests:
+          - not_null
+      - name: vl_receita
+        tests:
+          - not_null
+
+  - name: silver_competidores
+    description: "Preços dos concorrentes com campos padronizados"
+    columns:
+      - name: id_produto
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_produtos')
+              field: id_produto
+      - name: nm_concorrente
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Amazon', 'Shopee', 'Magalu', 'Mercado Livre']
+      - name: vl_preco_concorrente
+        tests:
+          - not_null
+      - name: dt_coleta
+        tests:
+          - not_null

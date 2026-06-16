@@ -1,0 +1,42 @@
+models:
+  - name: gold_bi_produtos
+    description: "Dimensão produto enriquecida com posição competitiva"
+    columns:
+      - name: id_produto
+        tests:
+          - unique
+          - not_null
+      - name: nm_produto
+        tests:
+          - not_null
+      - name: cd_categoria
+        tests:
+          - not_null
+
+  - name: gold_bi_clientes
+    description: "Dimensão cliente enriquecida com métricas de compra"
+    columns:
+      - name: id_cliente
+        tests:
+          - unique
+          - not_null
+      - name: nm_cliente
+        tests:
+          - not_null
+
+  - name: gold_bi_calendario
+    description: "Dimensão calendário gerada pelo dbt_utils"
+    columns:
+      - name: dt_data
+        tests:
+          - unique
+          - not_null
+      - name: nr_ano
+        tests:
+          - not_null
+      - name: nr_mes
+        tests:
+          - not_null
+      - name: flg_fim_de_semana
+        tests:
+          - not_null
