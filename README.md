@@ -1,192 +1,213 @@
-# Pipeline Ecommerce
+# E-commerce Data Pipeline
 
-Pipeline de dados end-to-end para operações de e-commerce com múltiplos canais de venda, monitoramento de competitividade e modelagem analítica em camadas.
+**An end-to-end, production-style data pipeline that turns scattered e-commerce data into trustworthy, decision-ready analytics — built with the same architectural patterns used by data teams at scale.**
 
----
+[![Python](https://img.shields.io/badge/Python-3.13-blue)]()
+[![dbt](https://img.shields.io/badge/dbt-Core-orange)]()
+[![Airflow](https://img.shields.io/badge/Airflow-3.0-red)]()
+[![Azure](https://img.shields.io/badge/Azure-Blob%20Storage-0078D4)]()
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791)]()
 
-## O problema que esse projeto resolve
-
-Operações de e-commerce geram dados em fontes distintas — planilhas de vendas, cadastros de clientes, catálogos de produtos e coletas de preço de concorrentes. Sem uma estrutura centralizada, esses dados ficam isolados, inconsistentes e inacessíveis para análise.
-
-O resultado prático disso são perguntas que o negócio não consegue responder com confiança:
-
-- **Qual canal gera mais receita — loja física ou e-commerce?**
-- **Quais produtos estão com preço acima do mercado e podem estar perdendo venda?**
-- **Quais categorias concentram a maior parte da receita?**
-- **Qual o ticket médio por cliente e canal ao longo do tempo?**
-
-Esse projeto constrói a infraestrutura que torna essas perguntas respondíveis — de forma automatizada, confiável e escalável.
+> 🇧🇷 Versão em português disponível [aqui](./README.pt-br.md).
 
 ---
 
-## Arquitetura
+## Why this project exists
+
+E-commerce operations generate data across disconnected sources — sales spreadsheets, customer records, product catalogs, and competitor price feeds. Without a centralized structure, this data stays siloed, inconsistent, and impossible to analyze reliably.
+
+In practice, that means the business can't confidently answer questions like:
+
+- Which channel drives more revenue — physical store or e-commerce?
+- Which products are priced above market and potentially losing sales?
+- Which categories concentrate the most revenue?
+- What's the average order value per customer and channel over time?
+
+This project builds the infrastructure that makes those questions answerable — automated, reliable, and built to scale.
+
+---
+
+## What this demonstrates
+
+This isn't a toy ETL script. It's a layered, production-oriented pipeline that reflects how real data teams design for reliability and growth:
+
+- **Medallion architecture** (Bronze → Silver → Gold → BI) implemented with dbt, the same pattern used by modern data platforms
+- **Schema contract enforcement** — pandera-based validation that blocks malformed data *before* it touches storage, preventing silent schema drift
+- **Cloud-native storage** — partitioned data lake on Azure Blob Storage (`dataset/year/month/day`), enabling safe historical reprocessing
+- **Orchestrated, scheduled workflows** — Apache Airflow 3 + Astronomer Cosmos coordinating ingestion and dbt transformations as a single dependency graph
+- **Extensible-by-design architecture** — adding a new data source means writing one new class, not touching the rest of the pipeline
+- **BI-ready output layer** — dimensional models exposed directly to Power BI, no extra transformation needed downstream
+
+---
+
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         FONTES DE DADOS                             │
-│                                                                     │
-│   📄 CSV / Planilhas          🔌 APIs Externas (HubSpot, etc.)      │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │
-                           ▼
+│                            DATA SOURCES                              │
+│                                                                       │
+│   📄 CSV / Spreadsheets          🔌 External APIs (HubSpot, etc.)    │
+└──────────────────────────┬───────────────────────────────────────────┘
+                            │
+                            ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      COLLECTOR LAYER                                │
-│                                                                     │
-│   CSVCollector                    APICollector (extensível)         │
-│   └── coleta arquivos locais      └── coleta dados de APIs          │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │
-                           ▼
+│                         COLLECTOR LAYER                              │
+│                                                                       │
+│   CSVCollector                    APICollector (extensible)          │
+│   └── collects local files        └── collects data from APIs        │
+└──────────────────────────┬───────────────────────────────────────────┘
+                            │
+                            ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                     TRANSFORMER LAYER                               │
-│                                                                     │
-│   ParquetTransformer                                                │
-│   └── converte CSV → Parquet                                        │
-│   SchemaRegistry                                                    │
-│   └── valida schema com contratos JSON (pandera)                    │
-│   └── bloqueia arquivos com Schema Drift antes de salvar            │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │
-                           ▼
+│                        TRANSFORMER LAYER                             │
+│                                                                       │
+│   ParquetTransformer                                                 │
+│   └── converts CSV → Parquet                                         │
+│   SchemaRegistry                                                     │
+│   └── validates schema against JSON contracts (pandera)              │
+│   └── blocks files with schema drift before they're persisted        │
+└──────────────────────────┬───────────────────────────────────────────┘
+                            │
+                            ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                       STORAGE LAYER                                 │
-│                                                                     │
-│   Azure Blob Storage — Data Lake                                    │
-│   └── bronze/                                                       │
-│       └── {dataset}/ano={Y}/mes={M}/dia={D}/{arquivo}.parquet       │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │
-                           ▼
+│                          STORAGE LAYER                                │
+│                                                                       │
+│   Azure Blob Storage — Data Lake                                     │
+│   └── bronze/                                                        │
+│       └── {dataset}/year={Y}/month={M}/day={D}/{file}.parquet        │
+└──────────────────────────┬───────────────────────────────────────────┘
+                            │
+                            ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        LOADER LAYER                                 │
-│                                                                     │
-│   DataLakeReader                                                    │
-│   └── baixa arquivos Parquet do Data Lake                           │
-│   DatabaseWriter                                                    │
-│   └── salva no PostgreSQL na camada Bronze                          │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │
-                           ▼
+│                          LOADER LAYER                                 │
+│                                                                       │
+│   DataLakeReader                                                     │
+│   └── downloads Parquet files from the Data Lake                     │
+│   DatabaseWriter                                                      │
+│   └── persists to PostgreSQL Bronze layer                            │
+└──────────────────────────┬───────────────────────────────────────────┘
+                            │
+                            ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    MEDALLION ARCHITECTURE (dbt)                     │
-│                                                                     │
-│  BRONZE (tabelas)      SILVER (views)        GOLD (tabelas)         │
-│  ────────────────      ──────────────        ────────────────────   │
-│  clientes         →    stg_clientes    →     gold_receita_canal     │
-│  produtos         →    stg_produtos    →     gold_ranking_produtos  │
-│  vendas           →    stg_vendas      →     gold_receita_categoria │
-│  preco_competidor →    stg_competit.   →     gold_competidores      │
-│                                              ────────────────────   │
-│                                              BI LAYER (tabelas)     │
-│                                              bi_vendas_completo     │
-│                                              bi_produtos            │
-│                                              bi_clientes            │
-│                                              bi_competitividade     │
-│                                              bi_performance_categ.  │
-│                                              bi_calendario          │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │
-                           ▼
+│                    MEDALLION ARCHITECTURE (dbt)                      │
+│                                                                       │
+│  BRONZE (tables)        SILVER (views)         GOLD (tables)         │
+│  ────────────────       ──────────────         ────────────────────  │
+│  customers          →   stg_customers     →    gold_revenue_channel  │
+│  products            →   stg_products      →    gold_product_ranking │
+│  sales                →   stg_sales         →    gold_revenue_category│
+│  competitor_price     →   stg_competitor    →    gold_competitors    │
+│                                                  ────────────────────  │
+│                                                  BI LAYER (tables)    │
+│                                                  bi_sales_full        │
+│                                                  bi_products          │
+│                                                  bi_customers         │
+│                                                  bi_competitiveness   │
+│                                                  bi_category_perf     │
+│                                                  bi_calendar          │
+└──────────────────────────┬───────────────────────────────────────────┘
+                            │
+                            ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      CONSUMER LAYER                                 │
-│                                                                     │
-│                       📊 Power BI                                   │
-│         Conectado diretamente ao schema gold_bi                     │
+│                         CONSUMER LAYER                                │
+│                                                                       │
+│                          📊 Power BI                                 │
+│            Connected directly to the gold_bi schema                  │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Orquestração
+## Orchestration
 
 ```
 Apache Airflow + Astronomer CLI
 │
-├── DAG: bronze_pipeline        (roda todo dia às 06:00)
-│   ├── task: collect           → coleta arquivos CSV
-│   ├── task: transform         → valida schema + converte para Parquet
-│   ├── task: upload            → envia para o Data Lake (Azure)
-│   ├── task: download          → baixa do Data Lake
-│   ├── task: write_to_db       → salva no PostgreSQL (Bronze)
+├── DAG: bronze_pipeline        (runs daily at 06:00)
+│   ├── task: collect           → collects CSV files
+│   ├── task: transform         → validates schema + converts to Parquet
+│   ├── task: upload            → pushes to the Data Lake (Azure)
+│   ├── task: download          → pulls from the Data Lake
+│   ├── task: write_to_db       → persists to PostgreSQL (Bronze)
 │   └── task: trigger_dbt  ─────────────────────────────────┐
 │                                                            │
-└── DAG: dbt_pipeline           (disparada ao fim da bronze) ◄─┘
+└── DAG: dbt_pipeline           (triggered after bronze)    ◄─┘
     └── Cosmos DbtTaskGroup
-        ├── silver.*            → views de limpeza e padronização
-        └── gold.*              → tabelas analíticas e camada BI
+        ├── silver.*            → cleaning/standardization views
+        └── gold.*              → analytical and BI-ready tables
 ```
 
 ---
 
-## Proteção contra Schema Drift
+## Schema drift protection
 
-Cada dataset tem um contrato de schema definido em JSON:
+Every dataset has a schema contract defined in YAML:
 
 ```
 src/schemas/contracts/
-├── clientes.json
-├── produtos.json
-├── vendas.json
-└── preco_competidores.json
+├── customers.yaml
+├── products.yaml
+├── sales.yaml
+└── competitor_prices.yaml
 ```
 
-Se um arquivo chegar com colunas faltando, renomeadas ou com tipos errados, o pipeline **bloqueia o arquivo e loga o erro** antes de qualquer escrita — evitando que dados corrompidos cheguem ao banco.
+If an incoming file has missing columns, renamed fields, or incorrect types, the pipeline **blocks the file and logs the error before any write happens** — preventing corrupted data from ever reaching the analytical layer.
 
 ---
 
-## Stack
+## Tech stack
 
-| Camada | Tecnologia |
+| Layer | Technology |
 |---|---|
-| Linguagem | Python 3.13 |
-| Gerenciamento de dependências | Poetry |
-| Validação de schema | Pandera |
-| Armazenamento em nuvem | Azure Blob Storage |
-| Banco de dados | PostgreSQL |
-| Transformação | dbt Core + dbt-postgres |
-| Orquestração | Apache Airflow 3 + Astronomer CLI |
-| Integração dbt/Airflow | Astronomer Cosmos |
-| Containerização | Docker |
-| Visualização | Power BI |
+| Language | Python 3.13 |
+| Dependency management | Poetry |
+| Schema validation | Pandera |
+| Cloud storage | Azure Blob Storage |
+| Database | PostgreSQL |
+| Transformation | dbt Core + dbt-postgres |
+| Orchestration | Apache Airflow 3 + Astronomer CLI |
+| dbt/Airflow integration | Astronomer Cosmos |
+| Containerization | Docker |
+| Visualization | Power BI |
 
 ---
 
-## Estrutura do projeto
+## Project structure
 
 ```
 PipelineEcommerce/
 ├── src/
 │   ├── collector/
-│   │   ├── data_collector.py       # contrato base (ABC)
-│   │   └── csv_collector.py        # implementação para CSV
+│   │   ├── data_collector.py       # base contract (ABC)
+│   │   └── csv_collector.py        # CSV implementation
 │   ├── transformer/
-│   │   └── parquet_transformer.py  # CSV → Parquet + validação
+│   │   └── parquet_transformer.py  # CSV → Parquet + validation
 │   ├── writer/
-│   │   ├── datalake_writer.py      # upload para Azure
-│   │   └── database_writer.py      # escrita no PostgreSQL
+│   │   ├── datalake_writer.py      # upload to Azure
+│   │   └── database_writer.py      # write to PostgreSQL
 │   ├── reader/
-│   │   └── datalake_reader.py      # download do Azure
+│   │   └── datalake_reader.py      # download from Azure
 │   ├── schemas/
-│   │   ├── registry.py             # carrega contratos JSON
-│   │   └── contracts/              # schemas por dataset
+│   │   ├── registry.py             # loads JSON contracts
+│   │   └── contracts/              # per-dataset schemas
 │   ├── pipeline/
-│   │   └── pipeline_runner.py      # orquestra todas as camadas
+│   │   └── pipeline_runner.py      # orchestrates all layers
 │   └── core/
-│       ├── azure_blob_client.py    # conexão com Azure
-│       ├── settings.py             # variáveis de ambiente
-│       └── logging.py              # configuração de logs
-├── ecommerce/                      # projeto dbt
+│       ├── azure_blob_client.py    # Azure connection
+│       ├── settings.py             # environment variables
+│       └── logging.py              # logging configuration
+├── ecommerce/                      # dbt project
 │   ├── models/
-│   │   ├── silver/                 # views de padronização
-│   │   └── gold/                   # tabelas analíticas
-│   │       └── bi/                 # camada para Power BI
+│   │   ├── silver/                 # standardization views
+│   │   └── gold/                   # analytical tables
+│   │       └── bi/                 # Power BI-facing layer
 │   ├── macros/
 │   └── dbt_project.yml
 ├── dags/
-│   ├── bronze_pipeline.py          # DAG principal
-│   └── dbt_pipeline.py             # DAG dbt com Cosmos
+│   ├── bronze_pipeline.py          # main DAG
+│   └── dbt_pipeline.py             # dbt DAG with Cosmos
 ├── include/
-│   └── dbt/ecommerce/              # projeto dbt dentro do Airflow
+│   └── dbt/ecommerce/              # dbt project inside Airflow
 ├── Dockerfile
 ├── requirements.txt
 └── pyproject.toml
@@ -194,28 +215,38 @@ PipelineEcommerce/
 
 ---
 
-## Como escalar esse projeto
+## How this scales
 
-A arquitetura foi desenhada para crescer sem reescrever o que já funciona.
+The architecture was designed to grow without rewriting what already works.
 
-**Novas fontes de dados** — crie um novo `Collector` herdando de `DataCollector` e adicione o contrato JSON correspondente em `schemas/contracts/`. O restante da pipeline não muda.
+**New data sources** — create a new `Collector` inheriting from `DataCollector` and add the corresponding JSON contract to `schemas/contracts/`. The rest of the pipeline doesn't change.
 
-**Novos datasets** — adicione o arquivo CSV, crie o contrato de schema e o model dbt. O `PipelineRunner` processa automaticamente todos os arquivos do diretório.
+**New datasets** — drop in the CSV file, define the schema contract, and add the dbt model. `PipelineRunner` automatically processes every file in the directory.
 
-**Novas análises** — crie um novo model na camada Gold ou BI. O dbt resolve as dependências automaticamente.
+**New analytics** — add a new model in the Gold or BI layer. dbt resolves dependencies automatically.
 
-**Novas fontes de API** — implemente um `APICollector` com a lógica de paginação e autenticação. A classe `HubSpotCollector` já serve como referência para múltiplos endpoints configuráveis.
+**New API sources** — implement an `APICollector` with pagination and auth logic. The `HubSpotCollector` class already serves as a reference for multi-endpoint configurations.
 
 ---
 
-## Dores de negócio atendidas
+## Business problems this solves
 
-**Visibilidade de receita por canal** — separa e compara o desempenho de loja física e e-commerce por período, categoria e produto.
+**Revenue visibility by channel** — splits and compares physical store vs. e-commerce performance by period, category, and product.
 
-**Inteligência competitiva** — monitora automaticamente o posicionamento de preço contra Amazon, Shopee, Magalu e Mercado Livre — identificando onde o negócio está acima ou abaixo do mercado.
+**Competitive intelligence** — automatically tracks price positioning against Amazon, Shopee, Magalu, and Mercado Livre, flagging where the business is priced above or below market.
 
-**Rastreabilidade de dados** — particionamento por data no Data Lake garante histórico completo e reprocessamento seguro de qualquer período.
+**Data traceability** — date-partitioned data lake storage guarantees full history and safe reprocessing of any period.
 
-**Confiabilidade** — validação de schema na entrada impede que mudanças inesperadas nas fontes corrompam os dados analíticos.
+**Reliability** — schema validation at ingestion prevents unexpected upstream changes from corrupting analytical data.
 
-**Autonomia analítica** — camada BI diretamente conectável ao Power BI, com dimensões e fatos prontos para uso sem transformação adicional.
+**Analytics self-service** — BI-ready layer connects directly to Power BI with dimensions and facts ready to use, no extra transformation required.
+
+---
+
+## About me
+
+I'm a Data Engineer based in Brazil, working with cloud data platforms, orchestration, and analytics engineering. I built this project to apply production-grade patterns — schema contracts, medallion architecture, orchestrated pipelines — to a realistic business scenario.
+
+I'm currently open to **remote Data Engineering roles** with US-based teams. Feel free to connect or reach out.
+
+📫 [LinkedIn](#) · 💻 [GitHub](https://github.com/NicolasNagel/ecommerce_pipeline)
